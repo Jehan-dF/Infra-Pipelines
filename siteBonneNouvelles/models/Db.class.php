@@ -7,8 +7,10 @@ class Db
     private function __construct()
     {
         try {
-            $this->_db = parse_url(getenv("DATABASE_URL"));
-            $this->_db["path"] = ltrim(_db["path"], "/");
+            $env = parse_url(getenv("DATABASE_URL"));
+	    $this->_db = new PDO("pgsql:" . sprintf("host=%s;port=%s;user=%s;password=%s;dbname=%s",$env["host"],$env["port"],$env["user"],$env["pass"],
+		ltrim($env["path"], "/")));
+            $this->_db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
         } 
 		catch (PDOException $e) {
 		    die('Erreur de connexion à la base de données : '.$e->getMessage());
@@ -34,12 +36,12 @@ class Db
         # Définition du query et préparation
         if ($keyword != '') {
             $keyword = str_replace("%", "\%", $keyword);
-            $query = "SELECT * FROM public.livres WHERE titre LIKE :keyword COLLATE utf8_bin ORDER BY no DESC ";
+            $query = "SELECT * FROM public.livres WHERE title LIKE :keyword ORDER BY no DESC";
             $ps = $this->_db->prepare($query);
             # Le bindValue se charge de quoter proprement les valeurs des variables sql
             $ps->bindValue(':keyword',"%$keyword%");
         } else {
-            $query = 'SELECT * FROM livres ORDER BY no DESC';
+            $query = 'SELECT * FROM public.livres ORDER BY no DESC';
             $ps = $this->_db->prepare($query);
         }
 
@@ -61,7 +63,7 @@ class Db
 
     public function insert_livre($titre,$auteur) {
         # Solution d'INSERT avec prepared statement
-        $query = 'INSERT INTO public.livres (titre, auteur) values (:titre,:auteur)';
+        $query = 'INSERT INTO public.livres (title, auteur) values (:titre,:auteur)';
         $ps = $this->_db->prepare($query);
         $ps->bindValue(':titre',$titre);
         $ps->bindValue(':auteur',$auteur);
